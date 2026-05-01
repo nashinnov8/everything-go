@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/yourusername/gin-crud-api/internal/domain"
-	"github.com/yourusername/gin-crud-api/internal/repository"
+	"github.com/yourusername/gin-crud-api/internal/user/domain"
+	"github.com/yourusername/gin-crud-api/internal/user/repository"
 	"github.com/yourusername/gin-crud-api/pkg/errors"
 	"github.com/yourusername/gin-crud-api/pkg/logger"
 	"golang.org/x/crypto/bcrypt"
@@ -93,6 +93,29 @@ func (u *userService) GetByID(ctx context.Context, id uuid.UUID) (*domain.UserRe
 		u.logger.Error("failed to get user", "error", err)
 		return nil, errors.ErrInternalServer
 	}
+	if user == nil {
+		return nil, errors.ErrUserNotFound
+	}
+
+	response := user.ToResponse()
+	return &response, nil
+}
+
+// ValidateCredentials verifies a user's password without exposing the password hash to callers.
+func (u *userService) ValidateCredentials(ctx context.Context, email, password string) (*domain.UserResponse, error) {
+	user, err := u.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		u.logger.Error("failed to get user by email", "error", err)
+		return nil, errors.ErrInternalServer
+	}
+	if user == nil || !user.IsActive {
+		return nil, errors.ErrInvalidCredentials
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return nil, errors.ErrInvalidCredentials
+	}
+
 	response := user.ToResponse()
 	return &response, nil
 }

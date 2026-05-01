@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/yourusername/gin-crud-api/internal/domain"
-	"github.com/yourusername/gin-crud-api/internal/repository"
+	"github.com/yourusername/gin-crud-api/internal/user/domain"
+	"github.com/yourusername/gin-crud-api/internal/user/repository"
 	"gorm.io/gorm"
 )
 

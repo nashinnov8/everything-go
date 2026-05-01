@@ -60,6 +60,13 @@ var ErrInvalidRequest = &AppError{
 	Status:  http.StatusBadRequest,
 }
 
+// ErrInvalidCredentials is returned when an email/password pair cannot be authenticated.
+var ErrInvalidCredentials = &AppError{
+	Code:    "INVALID_CREDENTIALS",
+	Message: "invalid credentials",
+	Status:  http.StatusUnauthorized,
+}
+
 // ErrrInvalidUserId is returned when the provided user ID is not a valid UUID.
 var ErrInvalidUserId = &AppError{
 	Code:    "INVALID_USER_ID",

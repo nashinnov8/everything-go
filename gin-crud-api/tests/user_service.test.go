@@ -8,9 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/yourusername/gin-crud-api/internal/domain"
-	"github.com/yourusername/gin-crud-api/internal/service"
+	"github.com/yourusername/gin-crud-api/internal/user/domain"
+	"github.com/yourusername/gin-crud-api/internal/user/service"
+	apperrors "github.com/yourusername/gin-crud-api/pkg/errors"
 	"github.com/yourusername/gin-crud-api/pkg/logger"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // MockUserRepository is a mock implementation
@@ -75,8 +77,6 @@ func (m *MockUserRepository) ExistsByUsername(ctx context.Context, username stri
 	return args.Bool(0), args.Error(1)
 }
 
-// ... implement other mock methods
-
 func TestUserService_Create(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	log, _ := logger.New("debug", "console")
@@ -100,5 +100,64 @@ func TestUserService_Create(t *testing.T) {
 	assert.NotNil(t, user)
 	assert.Equal(t, req.Email, user.Email)
 	assert.Equal(t, req.Username, user.Username)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_ValidateCredentials(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	log, _ := logger.New("debug", "console")
+	userService := service.NewUserService(mockRepo, log)
+
+	ctx := context.Background()
+	email := "test@example.com"
+	password := "password123"
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	assert.NoError(t, err)
+
+	storedUser := &domain.User{
+		ID:       uuid.New(),
+		Email:    email,
+		Username: "testuser",
+		Password: string(hashedPassword),
+		FullName: "Test User",
+		IsActive: true,
+	}
+
+	mockRepo.On("GetByEmail", ctx, email).Return(storedUser, nil)
+
+	user, err := userService.ValidateCredentials(ctx, email, password)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, user)
+	assert.Equal(t, storedUser.ID, user.ID)
+	assert.Equal(t, storedUser.Email, user.Email)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_ValidateCredentials_InvalidPassword(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	log, _ := logger.New("debug", "console")
+	userService := service.NewUserService(mockRepo, log)
+
+	ctx := context.Background()
+	email := "test@example.com"
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.MinCost)
+	assert.NoError(t, err)
+
+	storedUser := &domain.User{
+		ID:       uuid.New(),
+		Email:    email,
+		Username: "testuser",
+		Password: string(hashedPassword),
+		FullName: "Test User",
+		IsActive: true,
+	}
+
+	mockRepo.On("GetByEmail", ctx, email).Return(storedUser, nil)
+
+	user, err := userService.ValidateCredentials(ctx, email, "wrong-password")
+
+	assert.Nil(t, user)
+	assert.ErrorIs(t, err, apperrors.ErrInvalidCredentials)
 	mockRepo.AssertExpectations(t)
 }

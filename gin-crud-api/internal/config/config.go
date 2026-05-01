@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
+	GRPC     GRPCConfig     `mapstructure:"grpc"`
 	Database DatabaseConfig `mapstructure:"database"`
 	Log      LogConfig      `mapstructure:"log"`
 }
@@ -19,6 +20,12 @@ type ServerConfig struct {
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
 	Mode string `mapstructure:"mode"`
+}
+
+// GRPCConfig holds internal gRPC server configuration.
+type GRPCConfig struct {
+	Host string `mapstructure:"host"`
+	Port int    `mapstructure:"port"`
 }
 
 // DatabaseConfig holds database configuration
@@ -46,6 +53,9 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("server.mode", "release")
 
+	viper.SetDefault("grpc.host", "localhost")
+	viper.SetDefault("grpc.port", 9090)
+
 	viper.SetDefault("database.port", 5432)
 	viper.SetDefault("database.sslmode", "disable")
 	viper.SetDefault("database.max_open_conns", 25)
@@ -68,6 +78,9 @@ func Load() (*Config, error) {
 		setIfPresent("SERVER_PORT", "server.port")
 		setIfPresent("SERVER_MODE", "server.mode")
 
+		setIfPresent("GRPC_HOST", "grpc.host")
+		setIfPresent("GRPC_PORT", "grpc.port")
+
 		setIfPresent("DB_HOST", "database.host")
 		setIfPresent("DB_PORT", "database.port")
 		setIfPresent("DB_USER", "database.user")
@@ -85,6 +98,9 @@ func Load() (*Config, error) {
 	_ = viper.BindEnv("server.host", "SERVER_HOST")
 	_ = viper.BindEnv("server.port", "SERVER_PORT")
 	_ = viper.BindEnv("server.mode", "SERVER_MODE")
+
+	_ = viper.BindEnv("grpc.host", "GRPC_HOST")
+	_ = viper.BindEnv("grpc.port", "GRPC_PORT")
 
 	_ = viper.BindEnv("database.host", "DB_HOST")
 	_ = viper.BindEnv("database.port", "DB_PORT")

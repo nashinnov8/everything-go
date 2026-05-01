@@ -4,20 +4,22 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/gin-contrib/cors"
-	"github.com/yourusername/gin-crud-api/internal/handler"
 	"github.com/yourusername/gin-crud-api/internal/middleware"
+	userhttp "github.com/yourusername/gin-crud-api/internal/user/transport/http"
 	"github.com/yourusername/gin-crud-api/pkg/logger"
 )
 
 type Router struct {
 	engine      *gin.Engine
-	userHandler *handler.UserHandler
+	userHandler *userhttp.UserHandler
 	logger      logger.Logger
 }
 
-func NewRouter(userHandler *handler.UserHandler, logger logger.Logger) *Router {
+func NewRouter(userHandler *userhttp.UserHandler, logger logger.Logger) *Router {
 	gin.SetMode(gin.ReleaseMode)
 
 	engine := gin.New()
@@ -48,6 +50,9 @@ func (r *Router) SetupRoutes() {
 	r.engine.GET("/health", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{"status": "ok"})
 	})
+
+	// Swagger docs
+	r.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API v1
 	v1 := r.engine.Group("api/v1")

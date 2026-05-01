@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/yourusername/gin-crud-api/internal/domain"
+	"github.com/yourusername/gin-crud-api/internal/user/domain"
 )
 
 // UserRepository defines user repository interface

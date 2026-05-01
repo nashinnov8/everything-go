@@ -25,17 +25,17 @@ func (User) TableName() string {
 
 // CreateUserRequest represents user credentials for creating a new user
 type CreateUserRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Username string `json:"username" validate:"required,min=3,max=50"`
-	Password string `json:"password" validate:"required,min=6"`
-	FullName string `json:"full_name" validate:"required,min=2,max=100"`
+	Email    string `json:"email" binding:"required,email"`
+	Username string `json:"username" binding:"required,min=3,max=50"`
+	Password string `json:"password" binding:"required,min=6"`
+	FullName string `json:"full_name" binding:"required,min=2,max=100"`
 }
 
 // UpdateUserRequest represents user credentials for updating an existing user
 type UpdateUserRequest struct {
-	Email    string `json:"email" validate:"omitempty,email"`
-	Username string `json:"username" validate:"omitempty,min=3,max=50"`
-	FullName string `json:"full_name" validate:"omitempty,min=2,max=100"`
+	Email    string `json:"email" binding:"omitempty,email"`
+	Username string `json:"username" binding:"omitempty,min=3,max=50"`
+	FullName string `json:"full_name" binding:"omitempty,min=2,max=100"`
 	IsActive *bool  `json:"is_active"`
 }
 

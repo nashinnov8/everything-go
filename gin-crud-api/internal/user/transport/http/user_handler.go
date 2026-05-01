@@ -1,24 +1,25 @@
-package handler
+package http
 
 import (
-	"net/http"
+	nethttp "net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/yourusername/gin-crud-api/internal/domain"
-	"github.com/yourusername/gin-crud-api/internal/service"
+	"github.com/yourusername/gin-crud-api/internal/handler"
+	"github.com/yourusername/gin-crud-api/internal/user/domain"
+	"github.com/yourusername/gin-crud-api/internal/user/service"
 	"github.com/yourusername/gin-crud-api/pkg/errors"
 	"github.com/yourusername/gin-crud-api/pkg/logger"
 )
 
 type UserHandler struct {
-	BaseHandler
+	handler.BaseHandler
 	userService service.UserService
 }
 
 func NewUserHandler(userService service.UserService, logger logger.Logger) *UserHandler {
 	return &UserHandler{
-		BaseHandler: NewBaseHandler(logger),
+		BaseHandler: handler.NewBaseHandler(logger),
 		userService: userService,
 	}
 }
@@ -30,9 +31,9 @@ func NewUserHandler(userService service.UserService, logger logger.Logger) *User
 // @Accept json
 // @Produce json
 // @Param user body domain.CreateUserRequest true "User creation request"
-// @Success 201 {object} Response{data=domain.UserResponse}
-// @Failure 400 {object} Response
-// @Failure 409 {object} Response
+// @Success 201 {object} handler.Response{data=domain.UserResponse}
+// @Failure 400 {object} handler.Response
+// @Failure 409 {object} handler.Response
 // @Router /users [post]
 func (h *UserHandler) Create(c *gin.Context) {
 	var req domain.CreateUserRequest
@@ -46,7 +47,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 		return
 	}
 
-	h.Success(c, http.StatusCreated, user)
+	h.Success(c, nethttp.StatusCreated, user)
 }
 
 // GetByID godoc
@@ -55,8 +56,8 @@ func (h *UserHandler) Create(c *gin.Context) {
 // @Tags users
 // @Produce json
 // @Param id path string true "User ID"
-// @Success 200 {object} Response{data=domain.UserResponse}
-// @Failure 404 {object} Response
+// @Success 200 {object} handler.Response{data=domain.UserResponse}
+// @Failure 404 {object} handler.Response
 // @Router /users/{id} [get]
 func (h *UserHandler) GetByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
@@ -71,7 +72,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	h.Success(c, http.StatusOK, user)
+	h.Success(c, nethttp.StatusOK, user)
 }
 
 // List godoc
@@ -81,7 +82,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 // @Produce json
 // @Param page query int false "Page number" default(1)
 // @Param page_size query int false "Page size" default(10)
-// @Success 200 {object} Response{data=[]domain.UserResponse,meta=MetaInfo}
+// @Success 200 {object} handler.Response{data=[]domain.UserResponse,meta=handler.MetaInfo}
 // @Router /users [get]
 func (h *UserHandler) List(c *gin.Context) {
 	page := c.GetInt("page")
@@ -99,7 +100,7 @@ func (h *UserHandler) List(c *gin.Context) {
 		return
 	}
 
-	h.SuccessWithMeta(c, http.StatusOK, result.Users, &MetaInfo{
+	h.SuccessWithMeta(c, nethttp.StatusOK, result.Users, &handler.MetaInfo{
 		Page:       result.Page,
 		PageSize:   result.PageSize,
 		Total:      result.Total,
@@ -115,9 +116,9 @@ func (h *UserHandler) List(c *gin.Context) {
 // @Produce json
 // @Param id path string true "User ID"
 // @Param user body domain.UpdateUserRequest true "User update request"
-// @Success 200 {object} Response{data=domain.UserResponse}
-// @Failure 400 {object} Response
-// @Failure 404 {object} Response
+// @Success 200 {object} handler.Response{data=domain.UserResponse}
+// @Failure 400 {object} handler.Response
+// @Failure 404 {object} handler.Response
 // @Router /users/{id} [put]
 func (h *UserHandler) Update(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
@@ -137,7 +138,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 		return
 	}
 
-	h.Success(c, http.StatusOK, user)
+	h.Success(c, nethttp.StatusOK, user)
 }
 
 // Delete godoc
@@ -147,7 +148,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 // @Produce json
 // @Param id path string true "User ID"
 // @Success 204
-// @Failure 404 {object} Response
+// @Failure 404 {object} handler.Response
 // @Router /users/{id} [delete]
 func (h *UserHandler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
@@ -161,5 +162,5 @@ func (h *UserHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.Status(nethttp.StatusNoContent)
 }

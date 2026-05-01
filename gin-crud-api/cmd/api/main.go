@@ -3,20 +3,31 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	_ "github.com/yourusername/gin-crud-api/docs"
+	userv1 "github.com/yourusername/gin-crud-api/gen/go/user/v1"
 	"github.com/yourusername/gin-crud-api/internal/config"
 	"github.com/yourusername/gin-crud-api/internal/database"
-	"github.com/yourusername/gin-crud-api/internal/handler"
-	"github.com/yourusername/gin-crud-api/internal/repository/postgres"
 	"github.com/yourusername/gin-crud-api/internal/router"
-	"github.com/yourusername/gin-crud-api/internal/service"
+	"github.com/yourusername/gin-crud-api/internal/user/repository/postgres"
+	userservice "github.com/yourusername/gin-crud-api/internal/user/service"
+	usergrpc "github.com/yourusername/gin-crud-api/internal/user/transport/grpc"
+	userhttp "github.com/yourusername/gin-crud-api/internal/user/transport/http"
 	"github.com/yourusername/gin-crud-api/pkg/logger"
+	"google.golang.org/grpc"
 )
+
+// @title Gin CRUD API
+// @version 1.0
+// @description CRUD API built with Gin and PostgreSQL.
+// @BasePath /api/v1
+// @schemes http https
 
 func main() {
 	// Load configuration
@@ -56,14 +67,23 @@ func main() {
 	userRepo := postgres.NewUserRepository(db)
 
 	// Initialize services
-	userService := service.NewUserService(userRepo, log)
+	userService := userservice.NewUserService(userRepo, log)
 
 	// Initialize handlers
-	userHanlder := handler.NewUserHandler(userService, log)
+	userHandler := userhttp.NewUserHandler(userService, log)
 
 	// Initialize router
-	r := router.NewRouter(userHanlder, log)
+	r := router.NewRouter(userHandler, log)
 	r.SetupRoutes()
+
+	grpcAddr := fmt.Sprintf("%s:%d", cfg.GRPC.Host, cfg.GRPC.Port)
+	grpcListener, err := net.Listen("tcp", grpcAddr)
+	if err != nil {
+		log.Fatal("Failed to listen for gRPC server", "error", err)
+	}
+
+	grpcServer := grpc.NewServer()
+	userv1.RegisterUserServiceServer(grpcServer, usergrpc.NewServer(userService))
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -71,11 +91,19 @@ func main() {
 		Handler: r.GetEngine(),
 	}
 
+	// Start internal gRPC server for service-to-service communication.
+	go func() {
+		log.Info("Starting gRPC server", "address", grpcAddr)
+		if err := grpcServer.Serve(grpcListener); err != nil {
+			log.Fatal("Failed to start gRPC server", "error", err)
+		}
+	}()
+
 	// Start server in goroutine
 	go func() {
-		log.Info("Starting server", "address", srv.Addr)
+		log.Info("Starting HTTP server", "address", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal("Failed to start server", "error", err)
+			log.Fatal("Failed to start HTTP server", "error", err)
 		}
 	}()
 
@@ -92,6 +120,18 @@ func main() {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Error("Server forced to shutdown", "error", err)
+	}
+
+	grpcStopped := make(chan struct{})
+	go func() {
+		grpcServer.GracefulStop()
+		close(grpcStopped)
+	}()
+
+	select {
+	case <-grpcStopped:
+	case <-ctx.Done():
+		grpcServer.Stop()
 	}
 
 	log.Info("Server exited")
